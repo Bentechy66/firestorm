@@ -39,7 +39,12 @@ class ModelFactory(type):
             if not getattr(field_type, "modifiers"):
                 raise AttributeError("No modifiers found on Modifier!")
 
-            ModelFactory.parse_attribute(model, field_type.__args__[0], field_name, modifiers=field_type.modifiers)
+            ModelFactory.parse_attribute(
+                model,
+                field_type.__args__[0],
+                field_name,
+                modifiers=modifiers + field_type.modifiers
+            )
 
         elif issubclass(field_type, Model):
             model.table.add_field(ForeignKeyField(field_name, field_type, modifiers=modifiers))

@@ -26,7 +26,7 @@
 from typing import Callable
 
 from firestorm.models import Model
-from firestorm.modifiers import NotNull
+from firestorm.modifiers import NotNull, AutoIncrement
 
 
 class Author(Model):
@@ -36,7 +36,7 @@ class Author(Model):
 class Book(Model):
     name: str
     price: int
-    author: NotNull[Author]
+    author: NotNull[AutoIncrement[Author]]
 
 
 print(Author.as_create_sql())
