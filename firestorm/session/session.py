@@ -17,7 +17,6 @@ class Session:
         self.cursor = self.connection.cursor()
 
     def execute_sql(self, sql):
-        print(sql)
         if isinstance(sql, list):
             for statement in sql:
                 self.cursor.execute(statement)
@@ -27,7 +26,6 @@ class Session:
         return self.cursor.lastrowid
 
     def retrieve_records(self, sql):
-        print(sql)
         self.cursor.execute(sql)
         records = self.cursor.fetchall()
         return records
