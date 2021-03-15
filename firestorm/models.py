@@ -16,8 +16,8 @@ class ModelFactory(type):
         if not getattr(model, "__annotations__", None):
             return model
 
-        model.name = model.get_table_name()
-        model.table = Table(model.name)
+        model.model_name = model.get_table_name()
+        model.table = Table(model.model_name)
         model.field_classes = model.__annotations__
         model.objects = QuerySet(model)
 
@@ -69,8 +69,8 @@ class Model(metaclass=ModelFactory):
 
     def __repr__(self):
         if id := self.table.get_field('id').get_value():
-            return f"<{self.name}: {id}>"
-        return f"<{self.name}: Unsaved>"
+            return f"<{self.model_name}: {id}>"
+        return f"<{self.model_name}: Unsaved>"
 
     def __setattr__(self, key, value):
         for field in self.table.fields:
@@ -94,7 +94,7 @@ class Model(metaclass=ModelFactory):
         return cls.table.as_create_sql()
 
     def recreate_table(self):
-        self.table = Table(self.name)
+        self.table = Table(self.model_name)
 
         for field_name in self.field_classes:
             ModelFactory.parse_attribute(self, self.field_classes[field_name], field_name)

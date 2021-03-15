@@ -21,7 +21,7 @@ class QuerySet:
         return model
 
     def as_sql(self):
-        sql = f"SELECT * FROM {self.model.name}"
+        sql = f"SELECT * FROM {self.model.model_name}"
         if self.filters:
             sql += " WHERE "
             sql += ' AND '.join([sql_filter.as_sql() for sql_filter in self.filters])
