@@ -5,6 +5,8 @@ from firestorm.db.sql.modifiers import AutoIncrementModifier, PrimaryKeyModifier
 from firestorm.db.table import Table
 from firestorm.db.table_mappings import MAPPINGS
 from firestorm import session
+from firestorm.queryset import QuerySet
+from firestorm.session import current_session
 
 
 class ModelFactory(type):
@@ -17,6 +19,7 @@ class ModelFactory(type):
         model.name = model.get_table_name()
         model.table = Table(model.name)
         model.field_classes = model.__annotations__
+        model.objects = QuerySet(model)
 
         mcs.parse_attribute(model, PrimaryKeyField, "id", modifiers=[PrimaryKeyModifier(), AutoIncrementModifier()])
 
@@ -60,10 +63,14 @@ class ModelFactory(type):
 
 class Model(metaclass=ModelFactory):
     def __init__(self, *args, **kwargs):
+        self.recreate_table()
         for field_name in kwargs:
-            self.recreate_table()
-
             setattr(self, field_name, kwargs[field_name])
+
+    def __repr__(self):
+        if id := self.table.get_field('id').get_value():
+            return f"<{self.name}: {id}>"
+        return f"<{self.name}: Unsaved>"
 
     def __setattr__(self, key, value):
         for field in self.table.fields:
@@ -74,7 +81,7 @@ class Model(metaclass=ModelFactory):
     def __getattr__(self, item):
         for field in self.table.fields:
             if field.name == item:
-                return field.value
+                return field.get_value()
 
         raise AttributeError(f"Attribute {item} was not found on object!")
 
@@ -96,5 +103,8 @@ class Model(metaclass=ModelFactory):
         if not self.table.needs_save():
             return None
         if self.id is None:
-            return self.table.as_insert_sql()
-        return self.table.as_update_sql()
+            id = current_session.execute_sql(self.table.as_insert_sql())
+            self.table.get_field("id").set_value(id)
+        else:
+            current_session.execute_sql(self.table.as_update_sql())
+        self.table.refresh_field_cache()

@@ -38,6 +38,10 @@ class Table:
     def add_field(self, field):
         self.fields.append(field)
 
+    def refresh_field_cache(self):
+        for field in self.fields:
+            field._old_value = field.value
+
     def get_field(self, name):
         for field in self.fields:
             if field.name == name:

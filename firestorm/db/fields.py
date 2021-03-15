@@ -11,11 +11,17 @@ class Field:
     def set_value(self, value):
         self.value = value
 
+    def get_value(self):
+        return self.value
+
     def needs_save(self):
         return self._old_value != self.value
 
-    def value_as_sql_repr(self):
+    def to_sql_repr(self, value):
         return str(self.value)
+
+    def value_as_sql_repr(self):
+        return self.to_sql_repr(self.value)
 
     def as_create_sql(self):
         if not getattr(self, "datatype"):
@@ -34,15 +40,12 @@ class Field:
 class PrimaryKeyField(Field):
     datatype = "INTEGER"
 
-    def set_value(self, value):
-        raise RuntimeError("Cannot manually assign value to primary key field!")
-
 
 class TextField(Field):
     datatype = "TEXT"
 
-    def value_as_sql_repr(self):
-        return "'" + str(self.value) + "'"
+    def to_sql_repr(self, value):
+        return "'" + str(value) + "'"
 
 
 class IntField(Field):
@@ -55,6 +58,11 @@ class ForeignKeyField(Field):
     def __init__(self, name, foreign_object, *args, **kwargs):
         super(ForeignKeyField, self).__init__(name, *args, **kwargs)
         self.foreign_object = foreign_object
+
+    def to_sql_repr(self, value):
+        if self.value.id is None:
+            raise ValueError("Cannot save value since it refers to an unsaved object")
+        return str(self.value.id)
 
     def as_create_sql(self):
         sql = super(ForeignKeyField, self).as_create_sql()

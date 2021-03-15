@@ -15,8 +15,10 @@ class Book(Model):
 current_session.schema.delete_tables()
 current_session.schema.create_tables()
 
-z = Book(name="ben")
-x = Book(name="ben2")
+x = Author(name="John")
+y = Book(name="ben", author=x)
 
-# print(z.save())
-# print(x.save())
+x.save()
+y.save()
+
+print(Book.objects.all()[0].name)

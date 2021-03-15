@@ -4,8 +4,11 @@ class Filter:
 
 
 class ExactFieldFilter(Filter):
-    def __init__(self, field):
+    def __init__(self, field, value=None):
         self.field = field
+        self.value = value
+        if value is None:
+            self.value = field.value
 
     def as_sql(self):
-        return f"{self.field.name} = {self.field.value_as_sql_repr()}"
+        return f"{self.field.name} = {self.field.to_sql_repr(self.value)}"
