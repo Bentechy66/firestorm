@@ -1,32 +1,5 @@
-# from firestorm.db.sql import modifiers
-# from firestorm.db.table import Table
-# from firestorm.db.schema import Schema
-# from firestorm.db.fields import *
-#
-# class Author:
-#     @staticmethod
-#     def get_table_name():
-#         return "Author"
-#
-#
-# schema = Schema()
-#
-# author = Table("Author")
-# schema.add_table(author)
-# author.add_field(IntField("id", modifiers=[modifiers.PrimaryKeyModifier()]))
-# author.add_field(TextField("author_name"))
-#
-# book = Table("Book")
-# schema.add_table(book)
-# book.add_field(IntField("id", modifiers=[modifiers.PrimaryKeyModifier()]))
-# book.add_field(TextField("book_name"))
-# book.add_field(ForeignKeyField("author", Author))
-#
-# print(schema.as_create_sql())
-from typing import Callable
-
 from firestorm.models import Model
-from firestorm.modifiers import NotNull, AutoIncrement
+from firestorm.session import session
 
 
 class Author(Model):
@@ -36,8 +9,12 @@ class Author(Model):
 class Book(Model):
     name: str
     price: int
-    author: NotNull[AutoIncrement[Author]]
+    author: Author
 
 
-print(Author.as_create_sql())
-print(Book.as_create_sql())
+print(session.schema.as_create_sql())
+z = Book(name="ben")
+x = Book(name="ben2")
+
+print(z.save())
+print(x.save())

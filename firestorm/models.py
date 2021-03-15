@@ -1,10 +1,10 @@
 import typing
 
-from firestorm.db.fields import ForeignKeyField, IntField
+from firestorm.db.fields import ForeignKeyField, IntField, PrimaryKeyField, Field
 from firestorm.db.sql.modifiers import AutoIncrementModifier, PrimaryKeyModifier
 from firestorm.db.table import Table
 from firestorm.db.table_mappings import MAPPINGS
-from firestorm.modifiers import NotNull
+from firestorm.session import session
 
 
 class ModelFactory(type):
@@ -18,12 +18,14 @@ class ModelFactory(type):
         model.table = Table(model.name)
         model.field_classes = model.__annotations__
 
-        mcs.parse_attribute(model, int, "id", modifiers=[AutoIncrementModifier(), PrimaryKeyModifier()])
+        mcs.parse_attribute(model, PrimaryKeyField, "id", modifiers=[AutoIncrementModifier(), PrimaryKeyModifier()])
 
         for field_name in model.field_classes:
             mcs.parse_attribute(model, model.field_classes[field_name], field_name)
 
-        model.field_classes["id"] = int
+        model.field_classes["id"] = PrimaryKeyField
+
+        session.schema.add_table(model.table)
 
         return model
 
@@ -49,11 +51,33 @@ class ModelFactory(type):
         elif issubclass(field_type, Model):
             model.table.add_field(ForeignKeyField(field_name, field_type, modifiers=modifiers))
 
+        elif issubclass(field_type, Field):
+            model.table.add_field(field_type(field_name, modifiers=modifiers))
+
         else:
             raise AttributeError(f"Couldn't parse attribute {field_name}!")
 
 
 class Model(metaclass=ModelFactory):
+    def __init__(self, *args, **kwargs):
+        for field_name in kwargs:
+            self.recreate_table()
+
+            setattr(self, field_name, kwargs[field_name])
+
+    def __setattr__(self, key, value):
+        for field in self.table.fields:
+            if field.name == key:
+                return field.set_value(value)
+        return super(Model, self).__setattr__(key, value)
+
+    def __getattr__(self, item):
+        for field in self.table.fields:
+            if field.name == item:
+                return field.value
+
+        raise AttributeError(f"Attribute {item} was not found on object!")
+
     @classmethod
     def get_table_name(cls):
         return cls.__name__
@@ -61,3 +85,22 @@ class Model(metaclass=ModelFactory):
     @classmethod
     def as_create_sql(cls):
         return cls.table.as_create_sql()
+
+    def recreate_table(self):
+        self.table = Table(self.name)
+
+        for field_name in self.field_classes:
+            ModelFactory.parse_attribute(self, self.field_classes[field_name], field_name)
+
+    def as_update_sql(self):
+        sql_updates = {}
+        for field in self.table.fields:
+            sql_updates[field.name] = field.as_update()
+
+    def save(self):
+        if not self.table.needs_save():
+            return None
+        if self.id is None:
+            pass
+            # TODO: use insert instead of update
+        return self.table.as_update_sql()

@@ -1,10 +1,21 @@
 class Field:
-    def __init__(self, name, modifiers=None, *args, **kwargs):
+    def __init__(self, name, modifiers=None, value=None, live=False, *args, **kwargs):
         self.name = name
         self.modifiers = modifiers if modifiers else list()
+        self.value = value
+        self._old_value = self.value
 
     def get_modifiers_as_sql(self, operation):
         return [modifier.as_sql() for modifier in self.modifiers if operation in modifier.applies_to]
+
+    def set_value(self, value):
+        self.value = value
+
+    def needs_save(self):
+        return self._old_value != self.value
+
+    def value_as_sql_repr(self):
+        return str(self.value)
 
     def as_create_sql(self):
         if not getattr(self, "datatype"):
@@ -14,9 +25,24 @@ class Field:
         sql_parts += self.get_modifiers_as_sql("CREATE")
         return " ".join(sql_parts)
 
+    def as_update_sql(self):
+        if self.value == self._old_value:
+            return None
+        return f"{self.name} = {self.value_as_sql_repr()}"
+
+
+class PrimaryKeyField(Field):
+    datatype = "INTEGER"
+
+    def set_value(self, value):
+        raise RuntimeError("Cannot manually assign value to primary key field!")
+
 
 class TextField(Field):
     datatype = "TEXT"
+
+    def value_as_sql_repr(self):
+        return "'" + str(self.value) + "'"
 
 
 class IntField(Field):
