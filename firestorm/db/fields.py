@@ -1,5 +1,8 @@
+from firestorm.queryset import QuerySet
+
+
 class Field:
-    def __init__(self, name, modifiers=None, value=None, live=False, *args, **kwargs):
+    def __init__(self, name, modifiers=None, value=None, *args, **kwargs):
         self.name = name
         self.modifiers = modifiers if modifiers else list()
         self.value = value
@@ -8,7 +11,7 @@ class Field:
     def get_modifiers_as_sql(self, operation):
         return [modifier.as_sql() for modifier in self.modifiers if operation in modifier.applies_to]
 
-    def set_value(self, value):
+    def set_value(self, value, from_db=False):
         self.value = value
 
     def get_value(self):
@@ -18,7 +21,7 @@ class Field:
         return self._old_value != self.value
 
     def to_sql_repr(self, value):
-        return str(self.value)
+        return str(value)
 
     def value_as_sql_repr(self):
         return self.to_sql_repr(self.value)
@@ -52,6 +55,12 @@ class IntField(Field):
     datatype = "INTEGER"
 
 
+class ModelMock:
+    # Used in ForeignKeyFields to mock a real field. Gets replaced almost instantly.
+    def __init__(self, id):
+        self.id = id
+
+
 class ForeignKeyField(Field):
     datatype = "INTEGER"
 
@@ -62,7 +71,16 @@ class ForeignKeyField(Field):
     def to_sql_repr(self, value):
         if self.value.id is None:
             raise ValueError("Cannot save value since it refers to an unsaved object")
-        return str(self.value.id)
+        return str(value.id)
+
+    def set_value(self, value, from_db=False):
+        if from_db:
+            self.value = ModelMock(value)
+        else:
+            self.value = value
+
+    def get_value(self):
+        return QuerySet(self.foreign_object).filter(id=self.value.id).all()[0]
 
     def as_create_sql(self):
         sql = super(ForeignKeyField, self).as_create_sql()

@@ -62,10 +62,10 @@ class ModelFactory(type):
 
 
 class Model(metaclass=ModelFactory):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, db=False, **kwargs):
         self.recreate_table()
         for field_name in kwargs:
-            setattr(self, field_name, kwargs[field_name])
+            self.table.get_field(field_name).set_value(kwargs[field_name], from_db=db)
 
     def __repr__(self):
         if id := self.table.get_field('id').get_value():
@@ -104,7 +104,7 @@ class Model(metaclass=ModelFactory):
             return None
         if self.id is None:
             id = current_session.execute_sql(self.table.as_insert_sql())
-            self.table.get_field("id").set_value(id)
+            self.table.get_field("id").set_value(id, from_db=True)
         else:
             current_session.execute_sql(self.table.as_update_sql())
-        self.table.refresh_field_cache()
+

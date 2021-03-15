@@ -27,6 +27,7 @@ class Session:
         return self.cursor.lastrowid
 
     def retrieve_records(self, sql):
+        print(sql)
         self.cursor.execute(sql)
         records = self.cursor.fetchall()
         return records

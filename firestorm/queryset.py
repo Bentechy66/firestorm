@@ -16,7 +16,7 @@ class QuerySet:
         return QuerySet(self.model, filters=self.filters + new_filters)
 
     def _sql_to_model(self, data):
-        model = self.model(**data)
+        model = self.model(db=True, **data)
         model.table.refresh_field_cache()
         return model
 
