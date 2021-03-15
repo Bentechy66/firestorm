@@ -1,5 +1,5 @@
 from firestorm.models import Model
-from firestorm.session import session
+from firestorm.session import current_session
 
 
 class Author(Model):
@@ -12,9 +12,11 @@ class Book(Model):
     author: Author
 
 
-print(session.schema.as_create_sql())
+current_session.schema.delete_tables()
+current_session.schema.create_tables()
+
 z = Book(name="ben")
 x = Book(name="ben2")
 
-print(z.save())
-print(x.save())
+# print(z.save())
+# print(x.save())

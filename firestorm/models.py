@@ -4,7 +4,7 @@ from firestorm.db.fields import ForeignKeyField, IntField, PrimaryKeyField, Fiel
 from firestorm.db.sql.modifiers import AutoIncrementModifier, PrimaryKeyModifier
 from firestorm.db.table import Table
 from firestorm.db.table_mappings import MAPPINGS
-from firestorm.session import session
+from firestorm import session
 
 
 class ModelFactory(type):
@@ -18,14 +18,14 @@ class ModelFactory(type):
         model.table = Table(model.name)
         model.field_classes = model.__annotations__
 
-        mcs.parse_attribute(model, PrimaryKeyField, "id", modifiers=[AutoIncrementModifier(), PrimaryKeyModifier()])
+        mcs.parse_attribute(model, PrimaryKeyField, "id", modifiers=[PrimaryKeyModifier(), AutoIncrementModifier()])
 
         for field_name in model.field_classes:
             mcs.parse_attribute(model, model.field_classes[field_name], field_name)
 
         model.field_classes["id"] = PrimaryKeyField
 
-        session.schema.add_table(model.table)
+        session.current_session.schema.add_table(model.table)
 
         return model
 
@@ -92,15 +92,9 @@ class Model(metaclass=ModelFactory):
         for field_name in self.field_classes:
             ModelFactory.parse_attribute(self, self.field_classes[field_name], field_name)
 
-    def as_update_sql(self):
-        sql_updates = {}
-        for field in self.table.fields:
-            sql_updates[field.name] = field.as_update()
-
     def save(self):
         if not self.table.needs_save():
             return None
         if self.id is None:
-            pass
-            # TODO: use insert instead of update
+            return self.table.as_insert_sql()
         return self.table.as_update_sql()

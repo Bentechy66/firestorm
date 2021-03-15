@@ -1,3 +1,3 @@
 from firestorm.session.session import Session
 
-session = Session()
+current_session = Session()
