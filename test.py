@@ -1,5 +1,6 @@
 from firestorm.models import Model
 from firestorm.session import current_session
+from firestorm.modifiers import Nullable
 
 
 class Author(Model):
@@ -8,6 +9,7 @@ class Author(Model):
 class Book(Model):
     name: str
     price: int
+    star_rating: Nullable[int]
     author: Author
 
 current_session.schema.delete_tables()
